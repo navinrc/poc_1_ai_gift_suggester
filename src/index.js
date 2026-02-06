@@ -13,8 +13,6 @@ const outputEl = document.getElementById("output");
 const buttonEl = document.getElementById("giftBtn");
 
 const invoke = async () => {
-  const prompt = "Suggest some gifts for my birthday to myself. I am a huge office fan. especially Michael scott and dwight schrute";
-
   outputEl.textContent = "Thinking...";
 
   try {
@@ -23,23 +21,23 @@ const invoke = async () => {
       messages: [
         {
           role: "user",
-          content: prompt,
+          content: `Suggest some gifts for someone who loves hiphop music. 
+Make these suggestions thoughtful and practical. Your response must be under 100 words. 
+Skip intros and conclusions. Only output gift suggestions.`, // crisp prompt
         },
       ],
+      max_completion_tokens: 256, // explicitly setting 256 tokens
+      reasoning_effort: "minimal", // this limits the reasoning token to 0 ( minimal )
     });
-    console.log("response", JSON.stringify(response))
-    outputEl.textContent =
-      response.choices[0].message.content;
+    console.log("response", JSON.stringify(response));
+    outputEl.textContent = response.choices[0].message.content;
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
-      outputEl.textContent =
-        "Authentication error: Check your AI_KEY.";
+      outputEl.textContent = "Authentication error: Check your AI_KEY.";
     } else if (error.status >= 500) {
-      outputEl.textContent =
-        "AI provider error. Try again shortly.";
+      outputEl.textContent = "AI provider error. Try again shortly.";
     } else {
-      outputEl.textContent =
-        error.message || "Unexpected error";
+      outputEl.textContent = error.message || "Unexpected error";
     }
   }
 };
