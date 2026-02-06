@@ -1,46 +1,47 @@
-import OpenAI from "openai"
-import { checkEnvironment } from "./utils.js"
+import OpenAI from "openai";
+import { checkEnvironment } from "./utils.js";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
-  dangerouslyAllowBrowser: true
-})
+  dangerouslyAllowBrowser: true,
+});
 
 checkEnvironment();
 
-const prompt = "Suggest some gifts for someone who loves hiphop music";
+const outputEl = document.getElementById("output");
+const buttonEl = document.getElementById("giftBtn");
 
-console.log("Prompt:", prompt);
-console.log("Making AI request...");
+const invoke = async () => {
+  const prompt = "Suggest some gifts for my birthday to myself. I am a huge office fan. especially Michael scott and dwight schrute";
 
-try {
-  const response = await openai.chat.completions.create({
-    model: process.env.AI_MODEL,
-    messages: [
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  });
+  outputEl.textContent = "Thinking...";
 
-  console.log("AI response:");
-  console.log(response.choices[0].message.content);
-
-} catch (error) {
-  if (error.status === 401 || error.status === 403) {
-    console.error(
-      "Authentication error: Check your AI_KEY and make sure it’s valid."
-    );
-  } else if (error.status >= 500) {
-    console.error(
-      "AI provider error: Something went wrong on the provider side. Try again shortly."
-    );
-  } else {
-    console.error(
-      "Unexpected error:",
-      error.message || error
-    );
+  try {
+    const response = await openai.chat.completions.create({
+      model: process.env.AI_MODEL,
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+    });
+    console.log("response", JSON.stringify(response))
+    outputEl.textContent =
+      response.choices[0].message.content;
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      outputEl.textContent =
+        "Authentication error: Check your AI_KEY.";
+    } else if (error.status >= 500) {
+      outputEl.textContent =
+        "AI provider error. Try again shortly.";
+    } else {
+      outputEl.textContent =
+        error.message || "Unexpected error";
+    }
   }
-}
+};
+
+buttonEl.addEventListener("click", invoke);
