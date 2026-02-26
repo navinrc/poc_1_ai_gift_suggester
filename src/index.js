@@ -1,70 +1,63 @@
 import OpenAI from "openai";
-import { checkEnvironment } from "./utils.js";
+import { autoResizeTextarea, checkEnvironment, setLoading } from "./utils.js";
+checkEnvironment();
 
+// Initialize an OpenAI client for your provider using env vars
 const openai = new OpenAI({
   apiKey: process.env.AI_KEY,
   baseURL: process.env.AI_URL,
   dangerouslyAllowBrowser: true,
 });
 
-checkEnvironment();
+// Get UI elements
+const giftForm = document.getElementById("gift-form");
+const userInput = document.getElementById("user-input");
+const outputContent = document.getElementById("output-content");
 
-const outputEl = document.getElementById("output");
-const buttonEl = document.getElementById("giftBtn");
+function start() {
+  // Setup UI event listeners
+  userInput.addEventListener("input", () => autoResizeTextarea(userInput));
+  giftForm.addEventListener("submit", handleGiftRequest);
+}
 
-const invoke = async () => {
-  outputEl.textContent = "Thinking...";
+// Initialize messages array with system prompt
+const messages = [
+  {
+    role: "system",
+    content: `You are the Gift Genie!
+    Make your gift suggestions thoughtful and practical.
+    Your response must be under 100 words. 
+    Skip intros and conclusions. 
+    Only output gift suggestions.`,
+  },
+];
 
-  try {
-    const messages = [
-      {
-        role: "user",
-        content: `Suggest some gifts for someone who loves hiphop music.`,
-      },
-    ];
-    // system prompts are instructions for the model to generate responses that actually matter instead of user instructing these every time.
-    messages.push({
-      role: "system",
-      content: `Make these suggestions thoughtful and practical. Your response must be under 100 words. 
-Skip intros and conclusions. Only output gift suggestions.`
-    })
+async function handleGiftRequest(e) {
+  // Prevent default form submission
+  e.preventDefault();
 
-    const firstResponse = await openai.chat.completions.create({
-      model: process.env.AI_MODEL,
-      messages,
-      max_completion_tokens: 256, // explicitly setting 256 tokens
-      reasoning_effort: "minimal", // this limits the reasoning token to 0 ( minimal )
-    });
-    
-    console.log("response", JSON.stringify(firstResponse));
-    outputEl.textContent = firstResponse.choices[0].message.content;
+  // Get user input, trim whitespace, exit if empty
+  const userPrompt = userInput.value.trim();
+  if (!userPrompt) return;
 
-    const firstAssistantMessage = firstResponse.choices[0].message;
-    messages.push(firstAssistantMessage);
 
-    messages.push({
-      role: "user",
-      content: "More budget friendly. Less than $40.",
-    });
-    // Send second chat completions request with extended messages array
-    const secondResponse = await openai.chat.completions.create({
-      model: process.env.AI_MODEL,
-      messages,
-    });
+  messages.push({
+    role: "user",
+    content: userPrompt
+  })
 
-    console.log("Budget friendly suggestions:");
-    console.log(secondResponse.choices[0].message.content);
+  const response = await openai.chat.completions.create({
+    model: process.env.AI_MODEL,
+    messages,
+  })
+  console.log(JSON.stringify(response));
+  outputContent.textContent = response.choices[0].message.content;
 
-    outputEl.textContent = `${outputEl.textContent}  \n Budget Option under 40$ \n ${secondResponse.choices[0].message.content}`;
-  } catch (error) {
-    if (error.status === 401 || error.status === 403) {
-      outputEl.textContent = "Authentication error: Check your AI_KEY.";
-    } else if (error.status >= 500) {
-      outputEl.textContent = "AI provider error. Try again shortly.";
-    } else {
-      outputEl.textContent = error.message || "Unexpected error";
-    }
-  }
-};
+  // Set loading state
+  setLoading(true);
 
-buttonEl.addEventListener("click", invoke);
+  // Clear loading state
+  setLoading(false);
+}
+
+start();
